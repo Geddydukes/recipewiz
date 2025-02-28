@@ -33,22 +33,6 @@ const Hero = () => {
                 Learn More
               </a>
             </div>
-            
-            {/* Stats */}
-            <div className="flex flex-wrap gap-x-8 gap-y-4 pt-4">
-              <div>
-                <p className="text-3xl font-bold text-primary">15K+</p>
-                <p className="text-sm text-gray-500">Active Users</p>
-              </div>
-              <div>
-                <p className="text-3xl font-bold text-primary">50K+</p>
-                <p className="text-sm text-gray-500">Recipes Saved</p>
-              </div>
-              <div>
-                <p className="text-3xl font-bold text-primary">4.8/5</p>
-                <p className="text-sm text-gray-500">App Rating</p>
-              </div>
-            </div>
           </div>
           
           {/* Hero Image */}

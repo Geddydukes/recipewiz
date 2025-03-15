@@ -3,19 +3,66 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:provider/provider.dart';
 import 'services/auth_service.dart';
 import 'services/recipe_service.dart';
-import 'services/shopping_list_service.dart';
-import 'services/media_service.dart';
-import 'views/auth/login_page.dart';
+import 'services/ai_recipe_service.dart';
+import 'services/stripe_service.dart';
+import 'services/feature_flag_service.dart';
+import 'config/api_keys.dart';
+import 'config/environment.dart';
+import 'views/auth/auth_page.dart';
 import 'views/home/home_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
-  runApp(const MyApp());
+  
+  // Set environment
+  const String environment = String.fromEnvironment('ENVIRONMENT', defaultValue: 'development');
+  switch (environment) {
+    case 'production':
+      EnvironmentConfig.setEnvironment(Environment.production);
+      break;
+    case 'staging':
+      EnvironmentConfig.setEnvironment(Environment.staging);
+      break;
+    default:
+      EnvironmentConfig.setEnvironment(Environment.development);
+  }
+  
+  // Initialize Firebase
+  await Firebase.initializeApp(
+    options: EnvironmentConfig.useEmulators
+        ? const FirebaseOptions(
+            apiKey: 'test_api_key',
+            appId: 'test_app_id',
+            messagingSenderId: 'test_sender_id',
+            projectId: 'test_project_id',
+          )
+        : null,
+  );
+  
+  // Initialize Stripe
+  final stripeService = StripeService();
+  if (isStripeConfigured()) {
+    await stripeService.initialize();
+  }
+  
+  // Initialize feature flags
+  final featureFlagService = FeatureFlagService();
+  
+  runApp(MyApp(
+    stripeService: stripeService,
+    featureFlagService: featureFlagService,
+  ));
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  final StripeService stripeService;
+  final FeatureFlagService featureFlagService;
+  
+  const MyApp({
+    required this.stripeService,
+    required this.featureFlagService,
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -27,57 +74,28 @@ class MyApp extends StatelessWidget {
         Provider<RecipeService>(
           create: (_) => RecipeService(),
         ),
-        Provider<ShoppingListService>(
-          create: (_) => ShoppingListService(),
+        Provider<AIRecipeService>(
+          create: (_) => AIRecipeService(apiKey: GEMINI_API_KEY),
         ),
-        Provider<MediaService>(
-          create: (_) => MediaService(),
-        ),
+        Provider<StripeService>.value(value: stripeService),
+        Provider<FeatureFlagService>.value(value: featureFlagService),
       ],
       child: MaterialApp(
         title: 'Smart Kitchen Companion',
         theme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(
-            seedColor: Colors.green,
-            brightness: Brightness.light,
-          ),
+          colorScheme: ColorScheme.fromSeed(seedColor: Colors.green),
           useMaterial3: true,
         ),
-        darkTheme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(
-            seedColor: Colors.green,
-            brightness: Brightness.dark,
-          ),
-          useMaterial3: true,
+        home: StreamBuilder(
+          stream: AuthService().authStateChanges,
+          builder: (context, snapshot) {
+            if (snapshot.hasData) {
+              return const HomePage();
+            }
+            return const AuthPage();
+          },
         ),
-        home: const AuthenticationWrapper(),
       ),
-    );
-  }
-}
-
-class AuthenticationWrapper extends StatelessWidget {
-  const AuthenticationWrapper({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return StreamBuilder(
-      stream: context.read<AuthService>().onAuthStateChanged,
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.active) {
-          final user = snapshot.data;
-          if (user != null) {
-            return const HomePage(); // TODO: Create this widget
-          }
-          return const LoginPage(); // TODO: Create this widget
-        }
-        
-        return const Scaffold(
-          body: Center(
-            child: CircularProgressIndicator(),
-          ),
-        );
-      },
     );
   }
 }

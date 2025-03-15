@@ -151,4 +151,66 @@ class AuthService {
       return models.User.fromFirestore(doc);
     });
   }
+
+  // Follow user
+  Future<void> followUser(String userId) async {
+    if (_firebaseAuth.currentUser == null) return;
+
+    final userRef = _firestore.collection('users').doc(_firebaseAuth.currentUser!.uid);
+    final otherUserRef = _firestore.collection('users').doc(userId);
+
+    await _firestore.runTransaction((transaction) async {
+      final userDoc = await transaction.get(userRef);
+      final otherUserDoc = await transaction.get(otherUserRef);
+
+      if (!userDoc.exists || !otherUserDoc.exists) return;
+
+      List<String> following = List<String>.from(userDoc.data()?['following'] ?? []);
+      List<String> followers = List<String>.from(otherUserDoc.data()?['followers'] ?? []);
+
+      if (!following.contains(userId)) {
+        following.add(userId);
+        followers.add(_firebaseAuth.currentUser!.uid);
+
+        transaction.update(userRef, {'following': following});
+        transaction.update(otherUserRef, {'followers': followers});
+      }
+    });
+  }
+
+  // Unfollow user
+  Future<void> unfollowUser(String userId) async {
+    if (_firebaseAuth.currentUser == null) return;
+
+    final userRef = _firestore.collection('users').doc(_firebaseAuth.currentUser!.uid);
+    final otherUserRef = _firestore.collection('users').doc(userId);
+
+    await _firestore.runTransaction((transaction) async {
+      final userDoc = await transaction.get(userRef);
+      final otherUserDoc = await transaction.get(otherUserRef);
+
+      if (!userDoc.exists || !otherUserDoc.exists) return;
+
+      List<String> following = List<String>.from(userDoc.data()?['following'] ?? []);
+      List<String> followers = List<String>.from(otherUserDoc.data()?['followers'] ?? []);
+
+      following.remove(userId);
+      followers.remove(_firebaseAuth.currentUser!.uid);
+
+      transaction.update(userRef, {'following': following});
+      transaction.update(otherUserRef, {'followers': followers});
+    });
+  }
+
+  // Get user profile data
+  Future<Map<String, dynamic>?> getUserProfile(String userId) async {
+    final doc = await _firestore.collection('users').doc(userId).get();
+    return doc.data();
+  }
+
+  // Update user profile
+  Future<void> updateUserProfile(Map<String, dynamic> data) async {
+    if (_firebaseAuth.currentUser == null) return;
+    await _firestore.collection('users').doc(_firebaseAuth.currentUser!.uid).update(data);
+  }
 }

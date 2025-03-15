@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 enum MediaType { photo, video, audio, text }
+enum Difficulty { easy, medium, hard }
 
 class Recipe {
   final String id;
@@ -17,6 +18,10 @@ class Recipe {
   final int likes;
   final DateTime createdAt;
   final DateTime updatedAt;
+  final int prepTimeMinutes;
+  final int cookTimeMinutes;
+  final int servings;
+  final Difficulty difficulty;
 
   Recipe({
     required this.id,
@@ -33,6 +38,10 @@ class Recipe {
     this.likes = 0,
     required this.createdAt,
     required this.updatedAt,
+    this.prepTimeMinutes = 0,
+    this.cookTimeMinutes = 0,
+    this.servings = 4,
+    this.difficulty = Difficulty.medium,
   });
 
   factory Recipe.fromFirestore(DocumentSnapshot doc) {
@@ -50,11 +59,17 @@ class Recipe {
           (e) => e.toString() == 'MediaType.${data['sourceType']}'),
       mediaUrl: data['mediaUrl'],
       nutritionalInfo: NutritionalInfo.fromMap(data['nutritionalInfo']),
-      estimatedCost: data['estimatedCost'].toDouble(),
-      tags: List<String>.from(data['tags']),
-      likes: data['likes'],
+      estimatedCost: data['estimatedCost']?.toDouble() ?? 0.0,
+      tags: List<String>.from(data['tags'] ?? []),
+      likes: data['likes'] ?? 0,
       createdAt: (data['createdAt'] as Timestamp).toDate(),
       updatedAt: (data['updatedAt'] as Timestamp).toDate(),
+      prepTimeMinutes: data['prepTimeMinutes'] ?? 0,
+      cookTimeMinutes: data['cookTimeMinutes'] ?? 0,
+      servings: data['servings'] ?? 4,
+      difficulty: Difficulty.values.firstWhere(
+          (e) => e.toString() == 'Difficulty.${data['difficulty']}',
+          orElse: () => Difficulty.medium),
     );
   }
 
@@ -73,6 +88,10 @@ class Recipe {
       'likes': likes,
       'createdAt': Timestamp.fromDate(createdAt),
       'updatedAt': Timestamp.fromDate(updatedAt),
+      'prepTimeMinutes': prepTimeMinutes,
+      'cookTimeMinutes': cookTimeMinutes,
+      'servings': servings,
+      'difficulty': difficulty.toString().split('.').last,
     };
   }
 }

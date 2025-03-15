@@ -1,84 +1,87 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../services/auth_service.dart';
-import '../../models/user.dart' as models;
+import '../../models/user_profile.dart';
 
-class FollowersPage extends StatelessWidget {
+class FollowersPage extends StatefulWidget {
+  final String userId;
   final bool showFollowers; // true for followers, false for following
 
   const FollowersPage({
-    super.key,
+    required this.userId,
     required this.showFollowers,
-  });
+    Key? key,
+  }) : super(key: key);
+
+  @override
+  State<FollowersPage> createState() => _FollowersPageState();
+}
+
+class _FollowersPageState extends State<FollowersPage> {
+  late Stream<List<UserProfile>> _usersStream;
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeStream();
+  }
+
+  void _initializeStream() {
+    final authService = context.read<AuthService>();
+    // TODO: Implement stream from Firestore
+    // This is a placeholder. You'll need to implement the actual stream
+    _usersStream = Stream.value([]);
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(showFollowers ? 'Followers' : 'Following'),
+        title: Text(widget.showFollowers ? 'Followers' : 'Following'),
       ),
-      body: StreamBuilder<models.User?>(
-        stream: context.read<AuthService>().onUserChanged,
+      body: StreamBuilder<List<UserProfile>>(
+        stream: _usersStream,
         builder: (context, snapshot) {
+          if (snapshot.hasError) {
+            return Center(
+              child: Text('Error: ${snapshot.error}'),
+            );
+          }
+
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
+            return const Center(
+              child: CircularProgressIndicator(),
+            );
           }
 
-          final user = snapshot.data;
-          if (user == null) {
-            return const Center(child: Text('User not found'));
-          }
+          final users = snapshot.data ?? [];
 
-          final userIds = showFollowers ? user.followers : user.following;
-          
-          if (userIds.isEmpty) {
+          if (users.isEmpty) {
             return Center(
               child: Text(
-                showFollowers
+                widget.showFollowers
                     ? 'No followers yet'
                     : 'Not following anyone yet',
-                style: const TextStyle(fontSize: 16),
               ),
             );
           }
 
-          return FutureBuilder<List<models.User>>(
-            future: context.read<AuthService>().getUsersByIds(userIds),
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator());
-              }
-
-              if (snapshot.hasError) {
-                return Center(
-                  child: Text(
-                    'Error: ${snapshot.error}',
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.error,
-                    ),
-                  ),
-                );
-              }
-
-              final users = snapshot.data ?? [];
-              return ListView.builder(
-                itemCount: users.length,
-                itemBuilder: (context, index) {
-                  final otherUser = users[index];
-                  return ListTile(
-                    leading: CircleAvatar(
-                      backgroundImage: otherUser.photoUrl != null
-                          ? NetworkImage(otherUser.photoUrl!)
-                          : null,
-                      child: otherUser.photoUrl == null
-                          ? const Icon(Icons.person)
-                          : null,
-                    ),
-                    title: Text(otherUser.displayName),
-                    subtitle: Text('${otherUser.favoriteRecipes.length} recipes'),
-                    trailing: _buildFollowButton(context, otherUser),
-                  );
-                },
+          return ListView.builder(
+            itemCount: users.length,
+            itemBuilder: (context, index) {
+              final user = users[index];
+              return ListTile(
+                leading: CircleAvatar(
+                  backgroundImage: user.photoUrl != null
+                      ? NetworkImage(user.photoUrl!)
+                      : null,
+                  child: user.photoUrl == null
+                      ? Text(user.displayName[0].toUpperCase())
+                      : null,
+                ),
+                title: Text(user.displayName),
+                subtitle: Text(user.email),
+                trailing: _buildFollowButton(user),
               );
             },
           );
@@ -87,11 +90,16 @@ class FollowersPage extends StatelessWidget {
     );
   }
 
-  Widget _buildFollowButton(BuildContext context, models.User otherUser) {
-    final currentUser = context.read<AuthService>().currentUser;
-    if (currentUser == null) return const SizedBox.shrink();
+  Widget _buildFollowButton(UserProfile otherUser) {
+    final authService = context.read<AuthService>();
+    final currentUser = authService.currentUser;
 
-    final isFollowing = currentUser.following.contains(otherUser.id);
+    if (currentUser == null || currentUser.uid == otherUser.id) {
+      return const SizedBox.shrink();
+    }
+
+    // TODO: Implement following status check
+    final isFollowing = false;
 
     return TextButton(
       onPressed: () {
@@ -101,9 +109,6 @@ class FollowersPage extends StatelessWidget {
           context.read<AuthService>().followUser(otherUser.id);
         }
       },
-      style: TextButton.styleFrom(
-        foregroundColor: isFollowing ? Colors.grey : Theme.of(context).primaryColor,
-      ),
       child: Text(isFollowing ? 'Unfollow' : 'Follow'),
     );
   }

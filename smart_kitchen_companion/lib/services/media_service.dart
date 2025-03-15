@@ -6,14 +6,33 @@ import 'package:google_ml_kit/google_ml_kit.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
 
 class MediaService {
-  final ImagePicker _imagePicker = ImagePicker();
-  final Record _audioRecorder = Record();
-  final stt.SpeechToText _speechToText = stt.SpeechToText();
-  late final TextRecognizer _textRecognizer;
+  final ImagePicker _imagePicker;
+  final Record _audioRecorder;
+  final stt.SpeechToText _speechToText;
+  final TextRecognizer _textRecognizer;
   CameraController? _cameraController;
 
-  MediaService() {
-    _textRecognizer = GoogleMlKit.vision.textRecognizer();
+  // Default constructor
+  MediaService() 
+    : _imagePicker = ImagePicker(),
+      _audioRecorder = Record(),
+      _speechToText = stt.SpeechToText(),
+      _textRecognizer = GoogleMlKit.vision.textRecognizer();
+  
+  // Constructor with dependency injection for testing
+  MediaService.withDependencies({
+    required ImagePicker imagePicker,
+    required Record audioRecorder,
+    required stt.SpeechToText speechToText,
+    required TextRecognizer textRecognizer,
+  })  : _imagePicker = imagePicker,
+        _audioRecorder = audioRecorder,
+        _speechToText = speechToText,
+        _textRecognizer = textRecognizer;
+
+  // Set camera controller (useful for testing)
+  void setCameraController(CameraController cameraController) {
+    _cameraController = cameraController;
   }
 
   // Initialize camera

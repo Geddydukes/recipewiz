@@ -2,8 +2,23 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 class NotificationService {
-  final FirebaseMessaging _messaging = FirebaseMessaging.instance;
-  final FlutterLocalNotificationsPlugin _localNotifications = FlutterLocalNotificationsPlugin();
+  final FirebaseMessaging _messaging;
+  final FlutterLocalNotificationsPlugin _localNotifications;
+
+  // Default constructor
+  NotificationService() 
+    : _messaging = FirebaseMessaging.instance,
+      _localNotifications = FlutterLocalNotificationsPlugin();
+  
+  // Constructor with dependency injection for testing
+  NotificationService.withDependencies({
+    required FirebaseMessaging firebaseMessaging,
+    required FlutterLocalNotificationsPlugin localNotifications,
+    required AndroidNotificationChannel androidChannel,
+    required NotificationDetails notificationDetails,
+    required InitializationSettings initSettings,
+  })  : _messaging = firebaseMessaging,
+        _localNotifications = localNotifications;
 
   Future<void> initialize() async {
     // Request permission
@@ -61,6 +76,79 @@ class NotificationService {
       details,
       payload: message.data.toString(),
     );
+  }
+
+  // Helper method for testing
+  Future<void> showLocalNotification({
+    required String title,
+    required String body,
+    String? payload,
+  }) async {
+    const androidDetails = AndroidNotificationDetails(
+      'default_channel',
+      'Default Channel',
+      importance: Importance.max,
+      priority: Priority.high,
+    );
+    const iosDetails = DarwinNotificationDetails();
+    const details = NotificationDetails(
+      android: androidDetails,
+      iOS: iosDetails,
+    );
+
+    await _localNotifications.show(
+      0,
+      title,
+      body,
+      details,
+      payload: payload,
+    );
+  }
+
+  // Helper method for testing
+  Future<void> scheduleNotification({
+    required String title,
+    required String body,
+    required DateTime scheduledDate,
+    String? payload,
+  }) async {
+    const androidDetails = AndroidNotificationDetails(
+      'default_channel',
+      'Default Channel',
+      importance: Importance.max,
+      priority: Priority.high,
+    );
+    const iosDetails = DarwinNotificationDetails();
+    const details = NotificationDetails(
+      android: androidDetails,
+      iOS: iosDetails,
+    );
+
+    await _localNotifications.zonedSchedule(
+      1,
+      title,
+      body,
+      TZDateTime.from(scheduledDate, local),
+      details,
+      androidAllowWhileIdle: true,
+      uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
+      payload: payload,
+    );
+  }
+
+  // Helper method for testing
+  Future<void> cancelNotification(int id) async {
+    await _localNotifications.cancel(id);
+  }
+
+  // Helper method for testing
+  Future<void> cancelAllNotifications() async {
+    await _localNotifications.cancelAll();
+  }
+
+  // Helper method for testing
+  Future<String?> getToken() async {
+    return await _messaging.getToken();
   }
 }
 

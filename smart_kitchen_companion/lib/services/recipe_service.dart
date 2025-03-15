@@ -2,10 +2,27 @@ import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import '../models/recipe.dart';
+import 'gemini_video_service.dart';
 
 class RecipeService {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final FirebaseStorage _storage = FirebaseStorage.instance;
+  final FirebaseFirestore _firestore;
+  final FirebaseStorage _storage;
+  final GeminiVideoService? _geminiVideoService;
+
+  // Default constructor
+  RecipeService({String? geminiApiKey}) 
+    : _firestore = FirebaseFirestore.instance,
+      _storage = FirebaseStorage.instance,
+      _geminiVideoService = geminiApiKey != null ? GeminiVideoService(apiKey: geminiApiKey) : null;
+  
+  // Constructor with dependency injection for testing
+  RecipeService.withDependencies({
+    required FirebaseFirestore firestore,
+    required FirebaseStorage storage,
+    GeminiVideoService? geminiVideoService,
+  })  : _firestore = firestore,
+        _storage = storage,
+        _geminiVideoService = geminiVideoService;
 
   // Create a new recipe
   Future<Recipe> createRecipe(Recipe recipe, File? mediaFile) async {
@@ -167,6 +184,35 @@ class RecipeService {
           .where((doc) => doc.id != recipe.id)
           .map((doc) => Recipe.fromFirestore(doc))
           .toList();
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  // Generate TikTok-style recipe video using Gemini Flash
+  Future<String?> generateTikTokStyleVideo(String recipeId) async {
+    try {
+      // Check if GeminiVideoService was initialized
+      if (_geminiVideoService == null) {
+        throw Exception('Gemini Video Service not initialized. API key required.');
+      }
+      
+      // Get the recipe
+      final recipe = await getRecipe(recipeId);
+      if (recipe == null) {
+        throw Exception('Recipe not found');
+      }
+      
+      // Generate the video
+      final videoUrl = await _geminiVideoService!.generateRecipeVideo(recipe);
+      
+      // Update the recipe with the video URL
+      await _firestore.collection('recipes').doc(recipeId).update({
+        'tikTokVideoUrl': videoUrl,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+      
+      return videoUrl;
     } catch (e) {
       rethrow;
     }

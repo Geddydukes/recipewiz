@@ -3,8 +3,20 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/user.dart' as models;
 
 class AuthService {
-  final auth.FirebaseAuth _firebaseAuth = auth.FirebaseAuth.instance;
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final auth.FirebaseAuth _firebaseAuth;
+  final FirebaseFirestore _firestore;
+
+  // Default constructor
+  AuthService() 
+    : _firebaseAuth = auth.FirebaseAuth.instance,
+      _firestore = FirebaseFirestore.instance;
+  
+  // Constructor with dependency injection for testing
+  AuthService.withDependencies({
+    required auth.FirebaseAuth firebaseAuth,
+    required FirebaseFirestore firestore,
+  })  : _firebaseAuth = firebaseAuth,
+        _firestore = firestore;
 
   // Get current user
   models.User? get currentUser {

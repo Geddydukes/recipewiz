@@ -11,6 +11,7 @@ class Recipe {
   final List<String> instructions;
   final MediaType sourceType;
   final String mediaUrl;
+  final String tikTokVideoUrl;
   final NutritionalInfo nutritionalInfo;
   final double estimatedCost;
   final List<String> tags;
@@ -27,6 +28,7 @@ class Recipe {
     required this.instructions,
     required this.sourceType,
     required this.mediaUrl,
+    this.tikTokVideoUrl = '',
     required this.nutritionalInfo,
     required this.estimatedCost,
     required this.tags,
@@ -49,6 +51,7 @@ class Recipe {
       sourceType: MediaType.values.firstWhere(
           (e) => e.toString() == 'MediaType.${data['sourceType']}'),
       mediaUrl: data['mediaUrl'],
+      tikTokVideoUrl: data['tikTokVideoUrl'],
       nutritionalInfo: NutritionalInfo.fromMap(data['nutritionalInfo']),
       estimatedCost: data['estimatedCost'].toDouble(),
       tags: List<String>.from(data['tags']),
@@ -67,6 +70,7 @@ class Recipe {
       'instructions': instructions,
       'sourceType': sourceType.toString().split('.').last,
       'mediaUrl': mediaUrl,
+      'tikTokVideoUrl': tikTokVideoUrl,
       'nutritionalInfo': nutritionalInfo.toMap(),
       'estimatedCost': estimatedCost,
       'tags': tags,

@@ -3,7 +3,16 @@ import '../models/shopping_list.dart';
 import '../models/recipe.dart';
 
 class ShoppingListService {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseFirestore _firestore;
+
+  // Default constructor
+  ShoppingListService() 
+    : _firestore = FirebaseFirestore.instance;
+  
+  // Constructor with dependency injection for testing
+  ShoppingListService.withDependencies({
+    required FirebaseFirestore firestore,
+  }) : _firestore = firestore;
 
   // Create a new shopping list
   Future<ShoppingList> createShoppingList(ShoppingList list) async {
